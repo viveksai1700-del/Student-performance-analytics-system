@@ -2,7 +2,13 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-from database import create_database, add_student, get_students
+from database import (
+    create_database,
+    add_student,
+    get_students,
+    update_student,
+    delete_student,
+)
 from analytics import calculate_performance
 
 
@@ -14,7 +20,7 @@ st.set_page_config(
     page_title="Student Performance Analytics",
     page_icon="📊",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
 create_database()
@@ -24,223 +30,116 @@ create_database()
 # PROFESSIONAL UI STYLING
 # =========================================================
 
-st.markdown("""
-<style>
+st.markdown(
+    """
+    <style>
+    .stApp {
+        background-color: #F8FAFC;
+        color: #1E293B;
+    }
 
-/* =========================
-   GLOBAL
-   ========================= */
+    .block-container {
+        padding-top: 2rem;
+        padding-bottom: 3rem;
+        max-width: 1400px;
+    }
 
-.stApp {
-    background-color: #F8FAFC;
-    color: #1E293B;
-}
+    [data-testid="stSidebar"] {
+        background-color: #0F172A;
+    }
 
-.block-container {
-    padding-top: 2rem;
-    padding-bottom: 3rem;
-    max-width: 1400px;
-}
+    [data-testid="stSidebar"] * {
+        color: #E2E8F0;
+    }
 
+    [data-testid="stSidebar"] h1 {
+        color: #FFFFFF;
+        font-weight: 700;
+    }
 
-/* =========================
-   SIDEBAR
-   ========================= */
+    [data-testid="stSidebar"] hr {
+        border-color: #334155;
+    }
 
-[data-testid="stSidebar"] {
-    background-color: #0F172A;
-}
+    h1 {
+        color: #0F172A;
+        font-size: 2.5rem;
+        font-weight: 750;
+        letter-spacing: -0.5px;
+    }
 
-[data-testid="stSidebar"] * {
-    color: #E2E8F0;
-}
+    h2 {
+        color: #0F172A;
+        font-weight: 700;
+    }
 
-[data-testid="stSidebar"] h1 {
-    color: #FFFFFF;
-    font-weight: 700;
-}
+    h3 {
+        color: #1E293B;
+        font-weight: 650;
+    }
 
-[data-testid="stSidebar"] hr {
-    border-color: #334155;
-}
+    [data-testid="stMetric"] {
+        background-color: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-radius: 14px;
+        padding: 20px;
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
 
+    [data-testid="stMetric"]:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 22px rgba(15, 23, 42, 0.10);
+    }
 
-/* =========================
-   HEADINGS
-   ========================= */
+    [data-testid="stMetricLabel"] {
+        color: #64748B !important;
+        font-weight: 500;
+    }
 
-h1 {
-    color: #0F172A;
-    font-size: 2.5rem;
-    font-weight: 750;
-    letter-spacing: -0.5px;
-}
+    [data-testid="stMetricValue"] {
+        color: #0F172A !important;
+        font-weight: 750;
+    }
 
-h2 {
-    color: #0F172A;
-    font-weight: 700;
-}
+    .stButton > button,
+    .stFormSubmitButton > button {
+        background-color: #2563EB;
+        color: #FFFFFF;
+        border: none;
+        border-radius: 9px;
+        font-weight: 600;
+        padding: 0.65rem 1.2rem;
+        transition: all 0.2s ease;
+    }
 
-h3 {
-    color: #1E293B;
-    font-weight: 650;
-}
+    .stButton > button:hover,
+    .stFormSubmitButton > button:hover {
+        background-color: #1D4ED8;
+        color: #FFFFFF;
+    }
 
+    [data-testid="stDataFrame"] {
+        border: 1px solid #E2E8F0;
+        border-radius: 10px;
+        overflow: hidden;
+    }
 
-/* =========================
-   CAPTIONS
-   ========================= */
+    [data-testid="stAlert"] {
+        border-radius: 10px;
+    }
 
-.stCaption {
-    color: #64748B;
-}
+    .stProgress > div > div > div > div {
+        background-color: #2563EB;
+    }
 
-
-/* =========================
-   KPI CARDS
-   ========================= */
-
-[data-testid="stMetric"] {
-    background-color: #FFFFFF;
-    border: 1px solid #E2E8F0;
-    border-radius: 14px;
-    padding: 20px;
-    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
-    transition: transform 0.2s ease,
-                box-shadow 0.2s ease;
-}
-
-[data-testid="stMetric"]:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.10);
-}
-
-[data-testid="stMetricLabel"] {
-    color: #64748B !important;
-    font-weight: 500;
-}
-
-[data-testid="stMetricValue"] {
-    color: #0F172A !important;
-    font-weight: 750;
-}
-
-
-/* =========================
-   BUTTONS
-   ========================= */
-
-.stButton > button {
-    background-color: #2563EB;
-    color: #FFFFFF;
-    border: none;
-    border-radius: 9px;
-    padding: 0.65rem 1.3rem;
-    font-weight: 600;
-    transition: all 0.2s ease;
-}
-
-.stButton > button:hover {
-    background-color: #1D4ED8;
-    color: #FFFFFF;
-    transform: translateY(-1px);
-}
-
-
-/* =========================
-   FORM BUTTON
-   ========================= */
-
-.stFormSubmitButton > button {
-    background-color: #2563EB;
-    color: #FFFFFF;
-    border: none;
-    border-radius: 9px;
-    font-weight: 600;
-    padding: 0.7rem 1.4rem;
-}
-
-.stFormSubmitButton > button:hover {
-    background-color: #1D4ED8;
-    color: #FFFFFF;
-}
-
-
-/* =========================
-   INPUTS
-   ========================= */
-
-[data-baseweb="input"] {
-    border-radius: 8px;
-}
-
-[data-baseweb="select"] {
-    border-radius: 8px;
-}
-
-
-/* =========================
-   DATAFRAME
-   ========================= */
-
-[data-testid="stDataFrame"] {
-    border: 1px solid #E2E8F0;
-    border-radius: 10px;
-    overflow: hidden;
-}
-
-
-/* =========================
-   ALERTS
-   ========================= */
-
-[data-testid="stAlert"] {
-    border-radius: 10px;
-}
-
-
-/* =========================
-   DIVIDERS
-   ========================= */
-
-hr {
-    border-color: #E2E8F0;
-}
-
-
-/* =========================
-   PROGRESS BAR
-   ========================= */
-
-.stProgress > div > div > div > div {
-    background-color: #2563EB;
-}
-
-
-/* =========================
-   RADIO BUTTONS
-   ========================= */
-
-[data-testid="stSidebar"] label {
-    color: #CBD5E1 !important;
-}
-
-
-/* =========================
-   CUSTOM SECTION CARD
-   ========================= */
-
-.section-card {
-    background-color: #FFFFFF;
-    border: 1px solid #E2E8F0;
-    border-radius: 14px;
-    padding: 20px;
-    margin-bottom: 20px;
-    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
-}
-
-</style>
-""", unsafe_allow_html=True)
+    hr {
+        border-color: #E2E8F0;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 
 # =========================================================
@@ -263,7 +162,7 @@ else:
             "Total",
             "Average",
             "Grade",
-            "Status"
+            "Status",
         ]
     )
 
@@ -273,29 +172,22 @@ else:
 # =========================================================
 
 with st.sidebar:
-
     st.title("Student Analytics")
-
     st.caption("Python + SQL Dashboard")
 
     st.divider()
 
     page = st.radio(
         "Navigation",
-        [
-            "Dashboard",
-            "Students",
-            "Add Student"
-        ]
+        ["Dashboard", "Students", "Add Student"],
     )
 
     st.divider()
 
     st.caption("Academic Performance System")
-
     st.write(
-        "Manage student records and "
-        "analyze academic performance."
+        "Manage student records and analyze "
+        "academic performance."
     )
 
 
@@ -304,7 +196,6 @@ with st.sidebar:
 # =========================================================
 
 st.title("Student Performance Analytics")
-
 st.caption(
     "A professional academic analytics dashboard "
     "powered by Python and SQL."
@@ -320,82 +211,47 @@ st.divider()
 if page == "Dashboard":
 
     if df.empty:
-
         st.info(
             "No student records available. "
             "Go to 'Add Student' to create your first record."
         )
-
     else:
-
-        # -----------------------------------------
-        # KPI CALCULATIONS
-        # -----------------------------------------
-
         total_students = len(df)
-
         class_average = df["Average"].mean()
-
         highest_score = df["Total"].max()
-
-        pass_rate = (
-            (df["Status"] == "Pass").mean() * 100
-        )
-
-        # -----------------------------------------
-        # KPI CARDS
-        # -----------------------------------------
+        pass_rate = (df["Status"] == "Pass").mean() * 100
 
         col1, col2, col3, col4 = st.columns(4)
 
         with col1:
-            st.metric(
-                "Total Students",
-                total_students
-            )
+            st.metric("Total Students", total_students)
 
         with col2:
-            st.metric(
-                "Class Average",
-                f"{class_average:.1f}"
-            )
+            st.metric("Class Average", f"{class_average:.1f}")
 
         with col3:
-            st.metric(
-                "Highest Total",
-                highest_score
-            )
+            st.metric("Highest Total", highest_score)
 
         with col4:
-            st.metric(
-                "Pass Rate",
-                f"{pass_rate:.1f}%"
-            )
+            st.metric("Pass Rate", f"{pass_rate:.1f}%")
 
         st.divider()
-
-        # -----------------------------------------
-        # SUBJECT PERFORMANCE
-        # -----------------------------------------
 
         col1, col2 = st.columns(2)
 
         with col1:
-
             st.subheader("Subject Performance")
 
-            subject_data = pd.DataFrame({
-                "Subject": [
-                    "Python",
-                    "SQL",
-                    "Aptitude"
-                ],
-                "Average": [
-                    df["Python"].mean(),
-                    df["SQL"].mean(),
-                    df["Aptitude"].mean()
-                ]
-            })
+            subject_data = pd.DataFrame(
+                {
+                    "Subject": ["Python", "SQL", "Aptitude"],
+                    "Average": [
+                        df["Python"].mean(),
+                        df["SQL"].mean(),
+                        df["Aptitude"].mean(),
+                    ],
+                }
+            )
 
             fig = px.bar(
                 subject_data,
@@ -407,8 +263,8 @@ if page == "Dashboard":
                 color_discrete_sequence=[
                     "#2563EB",
                     "#0F766E",
-                    "#7C3AED"
-                ]
+                    "#7C3AED",
+                ],
             )
 
             fig.update_layout(
@@ -416,32 +272,16 @@ if page == "Dashboard":
                 plot_bgcolor="#FFFFFF",
                 paper_bgcolor="#FFFFFF",
                 font=dict(color="#1E293B"),
-                showlegend=False
+                showlegend=False,
             )
 
-            st.plotly_chart(
-                fig,
-                use_container_width=True
-            )
-
-        # -----------------------------------------
-        # GRADE DISTRIBUTION
-        # -----------------------------------------
+            st.plotly_chart(fig, use_container_width=True)
 
         with col2:
-
             st.subheader("Grade Distribution")
 
-            grade_data = (
-                df["Grade"]
-                .value_counts()
-                .reset_index()
-            )
-
-            grade_data.columns = [
-                "Grade",
-                "Students"
-            ]
+            grade_data = df["Grade"].value_counts().reset_index()
+            grade_data.columns = ["Grade", "Students"]
 
             fig = px.pie(
                 grade_data,
@@ -454,56 +294,36 @@ if page == "Dashboard":
                     "#0F766E",
                     "#7C3AED",
                     "#F59E0B",
-                    "#EF4444"
-                ]
+                    "#EF4444",
+                ],
             )
 
             fig.update_layout(
                 plot_bgcolor="#FFFFFF",
                 paper_bgcolor="#FFFFFF",
-                font=dict(color="#1E293B")
+                font=dict(color="#1E293B"),
             )
 
-            st.plotly_chart(
-                fig,
-                use_container_width=True
-            )
+            st.plotly_chart(fig, use_container_width=True)
 
         st.divider()
-
-        # -----------------------------------------
-        # TOP PERFORMERS
-        # -----------------------------------------
 
         st.subheader("Top Performers")
 
         top_students = (
-            df.sort_values(
-                "Average",
-                ascending=False
-            )
+            df.sort_values("Average", ascending=False)
             .head(5)
         )
 
         st.dataframe(
             top_students[
-                [
-                    "Name",
-                    "Total",
-                    "Average",
-                    "Grade",
-                    "Status"
-                ]
+                ["Name", "Total", "Average", "Grade", "Status"]
             ],
             use_container_width=True,
-            hide_index=True
+            hide_index=True,
         )
 
         st.divider()
-
-        # -----------------------------------------
-        # STUDENT COMPARISON
-        # -----------------------------------------
 
         st.subheader("Student Performance Comparison")
 
@@ -517,7 +337,7 @@ if page == "Dashboard":
                 "Python",
                 "SQL",
                 "Aptitude",
-                "Status"
+                "Status",
             ],
             title="Average Score by Student",
             color_discrete_sequence=[
@@ -525,21 +345,18 @@ if page == "Dashboard":
                 "#0F766E",
                 "#7C3AED",
                 "#F59E0B",
-                "#EF4444"
-            ]
+                "#EF4444",
+            ],
         )
 
         fig.update_layout(
             yaxis_range=[0, 100],
             plot_bgcolor="#FFFFFF",
             paper_bgcolor="#FFFFFF",
-            font=dict(color="#1E293B")
+            font=dict(color="#1E293B"),
         )
 
-        st.plotly_chart(
-            fig,
-            use_container_width=True
-        )
+        st.plotly_chart(fig, use_container_width=True)
 
 
 # =========================================================
@@ -551,79 +368,45 @@ elif page == "Students":
     st.header("Student Records")
 
     if df.empty:
-
-        st.info(
-            "No students have been added yet."
-        )
-
+        st.info("No students have been added yet.")
     else:
-
-        # -----------------------------------------
-        # FILTERS
-        # -----------------------------------------
-
         col1, col2, col3 = st.columns(3)
 
         with col1:
-
             search = st.text_input(
                 "Search Student",
-                placeholder="Enter student name..."
+                placeholder="Enter student name...",
             )
 
         with col2:
-
             grade_filter = st.selectbox(
                 "Filter by Grade",
-                ["All"] + sorted(
-                    df["Grade"].unique().tolist()
-                )
+                ["All"] + sorted(df["Grade"].unique().tolist()),
             )
 
         with col3:
-
             status_filter = st.selectbox(
                 "Filter by Status",
-                [
-                    "All",
-                    "Pass",
-                    "Fail"
-                ]
+                ["All", "Pass", "Fail"],
             )
 
         filtered_df = df.copy()
 
-        # -----------------------------------------
-        # SEARCH
-        # -----------------------------------------
-
         if search:
-
             filtered_df = filtered_df[
-                filtered_df["Name"]
-                .str.contains(
+                filtered_df["Name"].str.contains(
                     search,
                     case=False,
-                    na=False
+                    na=False,
                 )
             ]
 
-        # -----------------------------------------
-        # GRADE FILTER
-        # -----------------------------------------
-
         if grade_filter != "All":
-
             filtered_df = filtered_df[
                 filtered_df["Grade"] == grade_filter
             ]
 
-        # -----------------------------------------
-        # STATUS FILTER
-        # -----------------------------------------
-
         if status_filter != "All":
-
             filtered_df = filtered_df[
                 filtered_df["Status"] == status_filter
             ]
@@ -635,22 +418,19 @@ elif page == "Students":
         st.dataframe(
             filtered_df,
             use_container_width=True,
-            hide_index=True
+            hide_index=True,
         )
 
         st.divider()
 
-        # -----------------------------------------
-        # INDIVIDUAL STUDENT
-        # -----------------------------------------
-
         st.subheader("Student Performance")
 
-        if not filtered_df.empty:
-
+        if filtered_df.empty:
+            st.warning("No students match your filters.")
+        else:
             selected_student = st.selectbox(
                 "Select a student",
-                filtered_df["Name"].tolist()
+                filtered_df["Name"].tolist(),
             )
 
             student = filtered_df[
@@ -660,49 +440,125 @@ elif page == "Students":
             col1, col2, col3 = st.columns(3)
 
             with col1:
-
                 st.metric(
                     "Average",
-                    f"{student['Average']:.1f}"
+                    f"{student['Average']:.1f}",
                 )
 
             with col2:
-
-                st.metric(
-                    "Grade",
-                    student["Grade"]
-                )
+                st.metric("Grade", student["Grade"])
 
             with col3:
-
-                st.metric(
-                    "Status",
-                    student["Status"]
-                )
+                st.metric("Status", student["Status"])
 
             st.write("### Subject Scores")
 
             subjects = {
                 "Python": student["Python"],
                 "SQL": student["SQL"],
-                "Aptitude": student["Aptitude"]
+                "Aptitude": student["Aptitude"],
             }
 
             for subject, score in subjects.items():
+                st.write(f"**{subject}: {score}/100**")
+                st.progress(int(score))
 
-                st.write(
-                    f"**{subject}: {score}/100**"
-                )
+            st.divider()
 
-                st.progress(
-                    int(score)
-                )
+            st.subheader("Manage Student")
 
-        else:
-
-            st.warning(
-                "No students match your filters."
+            action = st.selectbox(
+                "Choose an action",
+                ["Edit Student", "Delete Student"],
             )
+
+            if action == "Edit Student":
+
+                with st.form("edit_student_form"):
+                    edited_name = st.text_input(
+                        "Student Name",
+                        value=student["Name"],
+                    )
+
+                    col1, col2, col3 = st.columns(3)
+
+                    with col1:
+                        edited_python = st.number_input(
+                            "Python Marks",
+                            min_value=0,
+                            max_value=100,
+                            value=int(student["Python"]),
+                            step=1,
+                        )
+
+                    with col2:
+                        edited_sql = st.number_input(
+                            "SQL Marks",
+                            min_value=0,
+                            max_value=100,
+                            value=int(student["SQL"]),
+                            step=1,
+                        )
+
+                    with col3:
+                        edited_aptitude = st.number_input(
+                            "Aptitude Marks",
+                            min_value=0,
+                            max_value=100,
+                            value=int(student["Aptitude"]),
+                            step=1,
+                        )
+
+                    update_button = st.form_submit_button(
+                        "Update Student",
+                        use_container_width=True,
+                    )
+
+                    if update_button:
+                        if not edited_name.strip():
+                            st.error(
+                                "Student name cannot be empty."
+                            )
+                        else:
+                            update_student(
+                                int(student["ID"]),
+                                edited_name.strip(),
+                                edited_python,
+                                edited_sql,
+                                edited_aptitude,
+                            )
+
+                            st.success(
+                                "Student record updated successfully."
+                            )
+
+                            st.rerun()
+
+            else:
+
+                st.warning(
+                    f"You are about to delete **{student['Name']}**."
+                )
+
+                confirm_delete = st.checkbox(
+                    "I understand that this action cannot be undone."
+                )
+
+                delete_button = st.button(
+                    "Delete Student",
+                    type="primary",
+                    use_container_width=True,
+                    disabled=not confirm_delete,
+                )
+
+                if delete_button:
+                    delete_student(int(student["ID"]))
+
+                    st.success(
+                        "Student deleted successfully."
+                    )
+
+                    st.rerun()
 
 
 # =========================================================
@@ -721,63 +577,54 @@ elif page == "Add Student":
 
         name = st.text_input(
             "Student Name",
-            placeholder="Enter student name"
+            placeholder="Enter student name",
         )
 
         col1, col2, col3 = st.columns(3)
 
         with col1:
-
             python_marks = st.number_input(
                 "Python Marks",
                 min_value=0,
                 max_value=100,
                 value=0,
-                step=1
+                step=1,
             )
 
         with col2:
-
             sql_marks = st.number_input(
                 "SQL Marks",
                 min_value=0,
                 max_value=100,
                 value=0,
-                step=1
+                step=1,
             )
 
         with col3:
-
             aptitude_marks = st.number_input(
                 "Aptitude Marks",
                 min_value=0,
                 max_value=100,
                 value=0,
-                step=1
+                step=1,
             )
 
         st.divider()
 
         submitted = st.form_submit_button(
             "Add Student",
-            use_container_width=True
+            use_container_width=True,
         )
 
         if submitted:
-
             if not name.strip():
-
-                st.error(
-                    "Please enter a student name."
-                )
-
+                st.error("Please enter a student name.")
             else:
-
                 add_student(
                     name.strip(),
                     python_marks,
                     sql_marks,
-                    aptitude_marks
+                    aptitude_marks,
                 )
 
                 st.success(
