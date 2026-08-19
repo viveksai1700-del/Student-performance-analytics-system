@@ -4,6 +4,10 @@ An interactive student performance analytics dashboard built with **Python, SQL,
 
 The application allows users to store student marks in a SQL database, calculate academic performance, filter student records, and visualize performance through an interactive dashboard.
 
+## Live Demo
+
+[Launch Student Performance Analytics] (https://student-performance-analytics-system-bngxfkwazsnxtmw9mnaxrh.streamlit.app/)
+
 ## Features
 
 * Add and store student performance records
