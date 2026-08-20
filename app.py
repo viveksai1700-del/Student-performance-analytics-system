@@ -8,13 +8,12 @@ from database import (
     get_students,
     update_student,
     delete_student,
+    get_subjects,
+    add_subject,
+    delete_subject,
 )
 from analytics import calculate_performance
 
-
-# =========================================================
-# PAGE CONFIGURATION
-# =========================================================
 
 st.set_page_config(
     page_title="Student Performance Analytics",
@@ -24,11 +23,6 @@ st.set_page_config(
 )
 
 create_database()
-
-
-# =========================================================
-# PROFESSIONAL UI STYLING
-# =========================================================
 
 st.markdown(
     """
@@ -84,17 +78,6 @@ st.markdown(
         border-radius: 14px;
         padding: 20px;
         box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    [data-testid="stMetric"]:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 22px rgba(15, 23, 42, 0.10);
-    }
-
-    [data-testid="stMetricLabel"] {
-        color: #64748B !important;
-        font-weight: 500;
     }
 
     [data-testid="stMetricValue"] {
@@ -110,7 +93,6 @@ st.markdown(
         border-radius: 9px;
         font-weight: 600;
         padding: 0.65rem 1.2rem;
-        transition: all 0.2s ease;
     }
 
     .stButton > button:hover,
@@ -142,71 +124,46 @@ st.markdown(
 )
 
 
-# =========================================================
-# LOAD DATA
-# =========================================================
-
+subjects = get_subjects()
 students = get_students()
 results = calculate_performance(students)
+
+subject_names = [subject[1] for subject in subjects]
 
 if results:
     df = pd.DataFrame(results)
 else:
     df = pd.DataFrame(
-        columns=[
-            "ID",
-            "Name",
-            "Python",
-            "SQL",
-            "Aptitude",
-            "Total",
-            "Average",
-            "Grade",
-            "Status",
-        ]
+        columns=["ID", "Name", *subject_names, "Total", "Average", "Grade", "Status"]
     )
 
 
-# =========================================================
-# SIDEBAR
-# =========================================================
-
 with st.sidebar:
     st.title("Student Analytics")
-    st.caption("Python + SQL Dashboard")
+    st.caption("Customizable Academic Dashboard")
 
     st.divider()
 
     page = st.radio(
         "Navigation",
-        ["Dashboard", "Students", "Add Student"],
+        ["Dashboard", "Students", "Add Student", "Manage Subjects"],
     )
 
     st.divider()
 
     st.caption("Academic Performance System")
     st.write(
-        "Manage student records and analyze "
-        "academic performance."
+        "Manage subjects, student records, and academic performance."
     )
 
 
-# =========================================================
-# MAIN HEADER
-# =========================================================
-
 st.title("Student Performance Analytics")
 st.caption(
-    "A professional academic analytics dashboard "
-    "powered by Python and SQL."
+    "A professional academic analytics dashboard powered by Python and SQL."
 )
 
 st.divider()
 
-
-# =========================================================
-# DASHBOARD
-# =========================================================
 
 if page == "Dashboard":
 
@@ -244,11 +201,10 @@ if page == "Dashboard":
 
             subject_data = pd.DataFrame(
                 {
-                    "Subject": ["Python", "SQL", "Aptitude"],
+                    "Subject": subject_names,
                     "Average": [
-                        df["Python"].mean(),
-                        df["SQL"].mean(),
-                        df["Aptitude"].mean(),
+                        df[subject].mean() if subject in df.columns else 0
+                        for subject in subject_names
                     ],
                 }
             )
@@ -259,12 +215,6 @@ if page == "Dashboard":
                 y="Average",
                 text_auto=".1f",
                 title="Average Marks by Subject",
-                color="Subject",
-                color_discrete_sequence=[
-                    "#2563EB",
-                    "#0F766E",
-                    "#7C3AED",
-                ],
             )
 
             fig.update_layout(
@@ -289,13 +239,6 @@ if page == "Dashboard":
                 values="Students",
                 hole=0.48,
                 title="Student Grade Distribution",
-                color_discrete_sequence=[
-                    "#2563EB",
-                    "#0F766E",
-                    "#7C3AED",
-                    "#F59E0B",
-                    "#EF4444",
-                ],
             )
 
             fig.update_layout(
@@ -310,10 +253,9 @@ if page == "Dashboard":
 
         st.subheader("Top Performers")
 
-        top_students = (
-            df.sort_values("Average", ascending=False)
-            .head(5)
-        )
+        top_students = df.sort_values(
+            "Average", ascending=False
+        ).head(5)
 
         st.dataframe(
             top_students[
@@ -334,19 +276,11 @@ if page == "Dashboard":
             size="Total",
             color="Grade",
             hover_data=[
-                "Python",
-                "SQL",
-                "Aptitude",
-                "Status",
-            ],
+                subject
+                for subject in subject_names
+                if subject in df.columns
+            ] + ["Status"],
             title="Average Score by Student",
-            color_discrete_sequence=[
-                "#2563EB",
-                "#0F766E",
-                "#7C3AED",
-                "#F59E0B",
-                "#EF4444",
-            ],
         )
 
         fig.update_layout(
@@ -358,10 +292,6 @@ if page == "Dashboard":
 
         st.plotly_chart(fig, use_container_width=True)
 
-
-# =========================================================
-# STUDENTS PAGE
-# =========================================================
 
 elif page == "Students":
 
@@ -411,12 +341,22 @@ elif page == "Students":
                 filtered_df["Status"] == status_filter
             ]
 
-        st.write(
-            f"Showing **{len(filtered_df)}** student(s)"
-        )
+        st.write(f"Showing **{len(filtered_df)}** student(s)")
+
+        display_columns = [
+            "ID",
+            "Name",
+            *subject_names,
+            "Total",
+            "Average",
+            "Grade",
+            "Status",
+        ]
 
         st.dataframe(
-            filtered_df,
+            filtered_df[
+                [column for column in display_columns if column in filtered_df.columns]
+            ],
             use_container_width=True,
             hide_index=True,
         )
@@ -440,10 +380,7 @@ elif page == "Students":
             col1, col2, col3 = st.columns(3)
 
             with col1:
-                st.metric(
-                    "Average",
-                    f"{student['Average']:.1f}",
-                )
+                st.metric("Average", f"{student['Average']:.1f}")
 
             with col2:
                 st.metric("Grade", student["Grade"])
@@ -453,13 +390,8 @@ elif page == "Students":
 
             st.write("### Subject Scores")
 
-            subjects = {
-                "Python": student["Python"],
-                "SQL": student["SQL"],
-                "Aptitude": student["Aptitude"],
-            }
-
-            for subject, score in subjects.items():
+            for subject in subject_names:
+                score = student.get(subject, 0)
                 st.write(f"**{subject}: {score}/100**")
                 st.progress(int(score))
 
@@ -475,6 +407,11 @@ elif page == "Students":
 
             st.divider()
 
+            selected_record = next(
+                item for item in students
+                if item["id"] == int(student["ID"])
+            )
+
             if action == "Update Student":
 
                 st.write(
@@ -489,32 +426,18 @@ elif page == "Students":
                         value=student["Name"],
                     )
 
-                    col1, col2, col3 = st.columns(3)
+                    edited_marks = {}
 
-                    with col1:
-                        edited_python = st.number_input(
-                            "Python Marks",
+                    for subject_id, subject_name in subjects:
+                        edited_marks[subject_id] = st.number_input(
+                            f"{subject_name} Marks",
                             min_value=0,
                             max_value=100,
-                            value=int(student["Python"]),
-                            step=1,
-                        )
-
-                    with col2:
-                        edited_sql = st.number_input(
-                            "SQL Marks",
-                            min_value=0,
-                            max_value=100,
-                            value=int(student["SQL"]),
-                            step=1,
-                        )
-
-                    with col3:
-                        edited_aptitude = st.number_input(
-                            "Aptitude Marks",
-                            min_value=0,
-                            max_value=100,
-                            value=int(student["Aptitude"]),
+                            value=int(
+                                selected_record["marks"].get(
+                                    subject_name, 0
+                                )
+                            ),
                             step=1,
                         )
 
@@ -526,27 +449,12 @@ elif page == "Students":
                     if update_button:
 
                         if not edited_name.strip():
-                            st.error(
-                                "Student name cannot be empty."
-                            )
-
-                        elif (
-                            edited_name.strip() == student["Name"]
-                            and edited_python == int(student["Python"])
-                            and edited_sql == int(student["SQL"])
-                            and edited_aptitude == int(student["Aptitude"])
-                        ):
-                            st.info(
-                                "No changes were made to this student."
-                            )
-
+                            st.error("Student name cannot be empty.")
                         else:
                             update_student(
                                 int(student["ID"]),
                                 edited_name.strip(),
-                                edited_python,
-                                edited_sql,
-                                edited_aptitude,
+                                edited_marks,
                             )
 
                             st.success(
@@ -581,7 +489,6 @@ elif page == "Students":
                 )
 
                 if delete_button:
-
                     delete_student(int(student["ID"]))
 
                     st.success(
@@ -592,74 +499,124 @@ elif page == "Students":
                     st.rerun()
 
 
-# =========================================================
-# ADD STUDENT PAGE
-# =========================================================
-
 elif page == "Add Student":
 
     st.header("Add New Student")
 
-    st.caption(
-        "Enter the student's academic performance below."
-    )
-
-    with st.form("student_form"):
-
-        name = st.text_input(
-            "Student Name",
-            placeholder="Enter student name",
+    if not subjects:
+        st.warning(
+            "No subjects are configured. "
+            "Go to 'Manage Subjects' and add at least one subject."
+        )
+    else:
+        st.caption(
+            "Enter the student's academic performance below."
         )
 
-        col1, col2, col3 = st.columns(3)
+        with st.form("student_form"):
 
-        with col1:
-            python_marks = st.number_input(
-                "Python Marks",
-                min_value=0,
-                max_value=100,
-                value=0,
-                step=1,
+            name = st.text_input(
+                "Student Name",
+                placeholder="Enter student name",
             )
 
-        with col2:
-            sql_marks = st.number_input(
-                "SQL Marks",
-                min_value=0,
-                max_value=100,
-                value=0,
-                step=1,
+            marks = {}
+
+            for subject_id, subject_name in subjects:
+                marks[subject_id] = st.number_input(
+                    f"{subject_name} Marks",
+                    min_value=0,
+                    max_value=100,
+                    value=0,
+                    step=1,
+                )
+
+            st.divider()
+
+            submitted = st.form_submit_button(
+                "Add Student",
+                use_container_width=True,
             )
 
-        with col3:
-            aptitude_marks = st.number_input(
-                "Aptitude Marks",
-                min_value=0,
-                max_value=100,
-                value=0,
-                step=1,
-            )
+            if submitted:
+                if not name.strip():
+                    st.error("Please enter a student name.")
+                else:
+                    add_student(name.strip(), marks)
 
-        st.divider()
+                    st.success(
+                        f"{name.strip()} added successfully!"
+                    )
 
-        submitted = st.form_submit_button(
-            "Add Student",
+                    st.rerun()
+
+
+elif page == "Manage Subjects":
+
+    st.header("Manage Subjects")
+
+    st.caption(
+        "Schools can create and manage the subjects used in their "
+        "student performance records."
+    )
+
+    st.subheader("Add Subject")
+
+    with st.form("add_subject_form"):
+        new_subject = st.text_input(
+            "Subject Name",
+            placeholder="e.g. Mathematics",
+        )
+
+        add_subject_button = st.form_submit_button(
+            "Add Subject",
             use_container_width=True,
         )
 
-        if submitted:
-            if not name.strip():
-                st.error("Please enter a student name.")
-            else:
-                add_student(
-                    name.strip(),
-                    python_marks,
-                    sql_marks,
-                    aptitude_marks,
-                )
-
+        if add_subject_button:
+            if not new_subject.strip():
+                st.error("Subject name cannot be empty.")
+            elif add_subject(new_subject.strip()):
                 st.success(
-                    f"{name} added successfully!"
+                    f"Subject '{new_subject.strip()}' added successfully."
+                )
+                st.rerun()
+            else:
+                st.error(
+                    "That subject already exists."
                 )
 
-                st.rerun()
+    st.divider()
+
+    st.subheader("Saved Subjects")
+
+    current_subjects = get_subjects()
+
+    if not current_subjects:
+        st.info("No subjects have been added yet.")
+    else:
+        for subject_id, subject_name in current_subjects:
+            col1, col2 = st.columns([4, 1])
+
+            with col1:
+                st.write(f"**{subject_name}**")
+
+            with col2:
+                if len(current_subjects) == 1:
+                    st.caption("Keep 1+")
+                else:
+                    if st.button(
+                        "Delete",
+                        key=f"delete_subject_{subject_id}",
+                        use_container_width=True,
+                    ):
+                        delete_subject(subject_id)
+                        st.success(
+                            f"Subject '{subject_name}' deleted."
+                        )
+                        st.rerun()
+
+        st.info(
+            "Deleting a subject removes its marks from student records. "
+            "This action cannot be undone."
+        )

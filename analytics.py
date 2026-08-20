@@ -2,10 +2,16 @@ def calculate_performance(students):
     results = []
 
     for student in students:
-        student_id, name, python, sql, aptitude = student
+        student_id = student["id"]
+        name = student["name"]
+        marks = student.get("marks", {})
 
-        total = python + sql + aptitude
-        average = total / 3
+        if marks:
+            total = sum(marks.values())
+            average = total / len(marks)
+        else:
+            total = 0
+            average = 0
 
         if average >= 90:
             grade = "A+"
@@ -22,16 +28,19 @@ def calculate_performance(students):
 
         status = "Pass" if average >= 40 else "Fail"
 
-        results.append({
+        result = {
             "ID": student_id,
             "Name": name,
-            "Python": python,
-            "SQL": sql,
-            "Aptitude": aptitude,
             "Total": total,
             "Average": round(average, 2),
             "Grade": grade,
-            "Status": status
-        })
+            "Status": status,
+            "Marks": marks,
+        }
+
+        for subject, score in marks.items():
+            result[subject] = score
+
+        results.append(result)
 
     return results
