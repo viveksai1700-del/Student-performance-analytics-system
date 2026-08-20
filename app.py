@@ -467,14 +467,23 @@ elif page == "Students":
 
             st.subheader("Manage Student")
 
-            action = st.selectbox(
+            action = st.radio(
                 "Choose an action",
-                ["Edit Student", "Delete Student"],
+                ["Update Student", "Delete Student"],
+                horizontal=True,
             )
 
-            if action == "Edit Student":
+            st.divider()
+
+            if action == "Update Student":
+
+                st.write(
+                    f"Editing **{student['Name']}** "
+                    f"(Student ID: **{int(student['ID'])}**)"
+                )
 
                 with st.form("edit_student_form"):
+
                     edited_name = st.text_input(
                         "Student Name",
                         value=student["Name"],
@@ -510,15 +519,27 @@ elif page == "Students":
                         )
 
                     update_button = st.form_submit_button(
-                        "Update Student",
+                        "Save Changes",
                         use_container_width=True,
                     )
 
                     if update_button:
+
                         if not edited_name.strip():
                             st.error(
                                 "Student name cannot be empty."
                             )
+
+                        elif (
+                            edited_name.strip() == student["Name"]
+                            and edited_python == int(student["Python"])
+                            and edited_sql == int(student["SQL"])
+                            and edited_aptitude == int(student["Aptitude"])
+                        ):
+                            st.info(
+                                "No changes were made to this student."
+                            )
+
                         else:
                             update_student(
                                 int(student["ID"]),
@@ -529,7 +550,8 @@ elif page == "Students":
                             )
 
                             st.success(
-                                "Student record updated successfully."
+                                f"Student '{edited_name.strip()}' "
+                                "updated successfully."
                             )
 
                             st.rerun()
@@ -537,7 +559,14 @@ elif page == "Students":
             else:
 
                 st.warning(
-                    f"You are about to delete **{student['Name']}**."
+                    f"You are about to permanently delete "
+                    f"**{student['Name']}** "
+                    f"(Student ID: **{int(student['ID'])}**)."
+                )
+
+                st.write(
+                    "This action cannot be undone and the student's "
+                    "record will be removed from the database."
                 )
 
                 confirm_delete = st.checkbox(
@@ -545,17 +574,19 @@ elif page == "Students":
                 )
 
                 delete_button = st.button(
-                    "Delete Student",
+                    "Delete Student Permanently",
                     type="primary",
                     use_container_width=True,
                     disabled=not confirm_delete,
                 )
 
                 if delete_button:
+
                     delete_student(int(student["ID"]))
 
                     st.success(
-                        "Student deleted successfully."
+                        f"Student '{student['Name']}' "
+                        "was deleted successfully."
                     )
 
                     st.rerun()
